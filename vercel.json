@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "crons": [
+    {
+      "path": "/api/hourly-fallback?secret=WHYLmVRu985TvN1d2qzIM0kXUZQ3SpEFbGje7s46ryfhtcOgolJDCiKxAPnwaB",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
