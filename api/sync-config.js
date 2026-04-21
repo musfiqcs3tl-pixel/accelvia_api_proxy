@@ -21,11 +21,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Generate a unique fallback ID using the first monitor URL as a primary key anchor
-    // For single-tenant Vercel proxy, this works universally.
-    const proxyKey = "accelvia_fallback_config"; 
+    if (!payload.tenant_hash) {
+      return res.status(400).json({ error: 'Missing tenant_hash for multi-tenant isolation' });
+    }
+    const proxyKey = `accelvia_tenant_${payload.tenant_hash}`;
     await kv.set(proxyKey, payload);
-    return res.status(200).json({ status: 'success', message: 'Edge Deadman Switch Config Armed Successfully in KV' });
+    return res.status(200).json({ status: 'success', message: 'Edge Deadman Switch Config Armed Successfully in KV', tenant: payload.tenant_hash });
   } catch(e) {
     return res.status(500).json({ error: e.message });
   }

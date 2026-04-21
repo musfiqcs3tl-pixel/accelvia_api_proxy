@@ -9,15 +9,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    const config = await kv.get("accelvia_fallback_config");
-    if (!config || !config.monitors) return res.status(200).json({ status: "No config armed" });
+    const keys = await kv.keys('accelvia_tenant_*');
+    if (!keys || keys.length === 0) return res.status(200).json({ status: "No arming detected" });
+    
+    // Fetch all multi-tenant configs cleanly
+    const configs = await Promise.all(keys.map(k => kv.get(k)));
+    let global_checks = [];
 
-    const checks = await Promise.all(config.monitors.map(async (m) => {
+    // Map through all distinct WP installations securely via mapped isolated configs
+    const overarchingJobs = configs.map(async (config) => {
+        if (!config || !config.monitors) return;
+        const tenant_jobs = config.monitors.map(async (m) => {
         let isDown = false;
         let errMsg = '';
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 12000);
+            // 8 second firm limit to protect against 10s Serverless Hobby constraint
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
             const fwRes = await fetch(m.url, {
                 method: 'GET',
                 headers: { 'User-Agent': 'Accelvia Edge Fallback Engine/1.0' },
@@ -41,9 +49,12 @@ export default async function handler(req, res) {
         
         // If up, do nothing. WordPress native WP-Cron will handle positive routing.
         return { url: m.url, status: 'up', dispatched: false };
-    }));
+        });
+        global_checks.push(...await Promise.all(tenant_jobs));
+    });
 
-    return res.status(200).json({ executed: true, checks });
+    await Promise.allSettled(overarchingJobs);
+    return res.status(200).json({ executed: true, active_tenants: keys.length, global_checks });
   } catch(e) {
     return res.status(500).json({ error: e.message });
   }
