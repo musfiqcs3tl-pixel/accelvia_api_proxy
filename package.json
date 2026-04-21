@@ -2,7 +2,6 @@
   "name": "accelvia-api-proxy",
   "version": "1.0.0",
   "description": "Vercel Edge API proxy for Accelvia Monitor",
-  "main": "api/ping.js",
   "type": "module",
   "dependencies": {
     "@vercel/kv": "latest"
